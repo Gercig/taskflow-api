@@ -1,0 +1,17 @@
+# окружение и секреты
+.env
+.venv/
+venv/
+
+# кэш Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# ОС
+.DS_Store
+Thumbs.db
