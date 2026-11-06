@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**", "hotfix/**", "release/**"]
+  pull_request:
+
+jobs:
+  style:
+    name: 1. Проверка стиля (flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Установить flake8
+        run: pip install flake8==7.1.1
+      - name: Запустить flake8
+        run: flake8 app alembic tests
+
+  analyze:
+    name: 2. Анализатор кода (bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Установить bandit
+        run: pip install bandit==1.8.0
+      - name: Запустить bandit (поиск уязвимостей и опасных конструкций)
+        run: bandit -r app
+
+  tests:
+    name: 3. Тесты (pytest + PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taskflow
+          POSTGRES_PASSWORD: taskflow
+          POSTGRES_DB: taskflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskflow -d taskflow_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://taskflow:taskflow@localhost:5432/taskflow_test
+      LOG_LEVEL: DEBUG
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Установить зависимости
+        run: pip install -r requirements-dev.txt
+      - name: Проверить миграции (upgrade → downgrade → upgrade)
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+      - name: Запустить тесты
+        run: pytest -v
