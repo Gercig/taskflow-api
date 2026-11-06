@@ -75,6 +75,32 @@ curl -X PATCH http://localhost:8000/v1/tasks/1 \
 
 > В Windows PowerShell вызывайте `curl.exe` вместо `curl`. Проще всего проверять запросы через http://localhost:8000/docs.
 
+## Логирование
+
+Уровень задаётся переменной окружения `LOG_LEVEL` (в `.env` или при запуске), по умолчанию `INFO`:
+
+```bash
+LOG_LEVEL=DEBUG docker compose up      # Linux/macOS
+```
+
+В Windows PowerShell: `$env:LOG_LEVEL="DEBUG"; docker compose up` или строка `LOG_LEVEL=DEBUG` в файле `.env`.
+
+| Уровень | Что пишется |
+|---|---|
+| `DEBUG` | начало каждого запроса, поля PATCH, фиксация транзакций, SQL-запросы |
+| `INFO` | старт и остановка, успешные запросы с временем ответа |
+| `WARNING` | ошибки клиента: 404, 409, 422 |
+| `ERROR` | сбои сервера: БД недоступна в `/health`, необработанные исключения (500) |
+| `CRITICAL` | нет связи с БД при старте приложения |
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) запускается на каждый push и pull request. Три джобы:
+
+1. **Стиль** — `flake8` (настройки в `.flake8`, длина строки 100).
+2. **Анализатор кода** — `bandit`, поиск уязвимостей и опасных конструкций в `app/`.
+3. **Тесты** — `pytest` на настоящем PostgreSQL 16: сначала миграции `upgrade → downgrade → upgrade`, затем тесты из `tests/`.
+
 ## Миграции
 
 Схема БД создаётся только миграциями Alembic (`alembic/versions/0001_initial_schema.py`), `create_all()` не используется.
@@ -96,7 +122,10 @@ app/
   models.py      — ORM-модели пяти таблиц
   schemas.py     — Pydantic-схемы запросов и ответов
   crud.py        — общие функции: 404 и обработка конфликтов (409)
+  logging_config.py — настройка логирования (LOG_LEVEL)
   routers/       — users, projects, labels, tasks, comments
 alembic/         — настройки и миграции
+tests/           — тесты pytest
+.github/workflows/ci.yml — CI: стиль, анализатор, тесты
 Dockerfile, docker-compose.yml, .dockerignore, .env.example
 ```

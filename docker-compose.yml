@@ -19,6 +19,8 @@ services:
     environment:
       # Хост — имя сервиса "db", а не localhost.
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow}@db:5432/${POSTGRES_DB:-taskflow}
+      # Уровень логов: DEBUG, INFO, WARNING, ERROR, CRITICAL
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "8000:8000"
     depends_on:
